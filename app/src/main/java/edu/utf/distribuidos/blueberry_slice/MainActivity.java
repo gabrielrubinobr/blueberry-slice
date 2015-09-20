@@ -1,37 +1,55 @@
 package edu.utf.distribuidos.blueberry_slice;
 
+import android.app.ListActivity;
+import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends ListActivity {
+
+    private static final int REQUEST_ENABLE_BLUETOOTH = 1;
+
+    private BluetoothDevicesListAdapter listAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+        listAdapter = new BluetoothDevicesListAdapter(this);
+        getListView().setAdapter(listAdapter);
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        // Solicitando começar a procurar dispositivos ao redor
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter.isEnabled()) {
+            // Se o bluetooth já estiver ativado, já solicita o escaneamento de dispositivos
+            listAdapter.startScanningDevices();
+        } else {
+            // Se não estiver ligado, solicita ao usuário para ativar antes de começar o escaneamento
+            Intent intentRequestEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(intentRequestEnableBluetooth, REQUEST_ENABLE_BLUETOOTH);
         }
+    }
 
-        return super.onOptionsItemSelected(item);
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            // Se o usuário aceitou ativar o bluetooth sem erro
+            listAdapter.startScanningDevices();
+        }
+        // Ou o usuário recusou ativar o bluetooth ou algum erro ocorreu
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        listAdapter.unregisterFoundDeviceListener();
     }
 }
